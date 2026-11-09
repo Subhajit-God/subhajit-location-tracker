@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#101827">
+  <meta name="description" content="Consent-based location sharing between authorized accounts.">
+  <title>Subhajit Location Tracker</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon-192.png">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./"><span class="brand-mark">⌖</span><span>SUBHAJIT <small>LOCATION TRACKER</small></span></a>
+    <span id="connectionPill" class="pill muted">Not signed in</span>
+  </header>
+
+  <main class="shell">
+    <section id="loginView" class="panel login-panel">
+      <div class="eyebrow">PRIVATE LOCATION SHARING</div>
+      <h1>Welcome back.</h1>
+      <p class="muted">Sign in to share your own location or view a location that has been intentionally shared with you.</p>
+      <form id="loginForm">
+        <label for="loginRole">Account</label>
+        <select id="loginRole" required>
+          <option value="provider">SUBHAJIT · Location provider</option>
+          <option value="viewer">INFO_SUBHAJIT · Location viewer</option>
+        </select>
+        <label for="email">Account email</label>
+        <input id="email" type="email" autocomplete="username" placeholder="Email created in Firebase" required>
+        <label for="password">Password</label>
+        <input id="password" type="password" autocomplete="current-password" placeholder="Your Firebase password" required>
+        <button class="primary full" type="submit">Sign in</button>
+        <p id="loginError" class="error" role="alert"></p>
+      </form>
+      <div class="notice">
+        <strong>First-time setup:</strong> create the two accounts in Firebase Authentication, then sign in using the corresponding email addresses. Never put passwords in this website's source code.
+      </div>
+    </section>
+
+    <section id="appView" hidden>
+      <div class="welcome-row">
+        <div><div class="eyebrow" id="roleLabel">DASHBOARD</div><h1 id="hello">Location dashboard</h1></div>
+        <button id="logoutBtn" class="secondary">Log out</button>
+      </div>
+
+      <section id="providerPanel" class="panel" hidden>
+        <div class="section-head"><div><div class="eyebrow">LOCATION PROVIDER</div><h2>Your sharing controls</h2></div><span id="sharingPill" class="pill muted">Stopped</span></div>
+        <p class="muted">Location is shared only after you press Start. Keep this page open for reliable browser-based updates. Android may pause or stop browser location updates in the background.</p>
+        <div class="status-grid">
+          <div class="stat"><span class="stat-label">GPS status</span><strong id="gpsStatus">Not active</strong></div>
+          <div class="stat"><span class="stat-label">Battery</span><strong id="batteryStatus">Unavailable</strong></div>
+          <div class="stat"><span class="stat-label">Last update</span><strong id="providerUpdated">—</strong></div>
+        </div>
+        <div class="controls">
+          <button id="startBtn" class="primary">Start sharing</button>
+          <button id="stopBtn" class="danger" disabled>Emergency stop</button>
+        </div>
+        <div class="timer-row">
+          <label for="duration">Automatic stop</label>
+          <select id="duration">
+            <option value="0">No timer (stop manually)</option>
+            <option value="15">15 minutes</option>
+            <option value="30">30 minutes</option>
+            <option value="60">1 hour</option>
+            <option value="120">2 hours</option>
+          </select>
+        </div>
+        <div class="notice"><strong>Privacy:</strong> your browser will ask for location permission. You can stop sharing at any time. Do not use this app to track anyone without their knowledge and permission.</div>
+      </section>
+
+      <section id="viewerPanel" class="panel" hidden>
+        <div class="section-head"><div><div class="eyebrow">LOCATION VIEWER</div><h2>Shared location</h2></div><span id="freshnessPill" class="pill muted">No data</span></div>
+        <p class="muted">This map displays the provider's latest voluntarily shared location. A stale location is not a live location.</p>
+        <div class="viewer-stats status-grid">
+          <div class="stat"><span class="stat-label">Sharing</span><strong id="viewerSharing">Unknown</strong></div>
+          <div class="stat"><span class="stat-label">Accuracy</span><strong id="accuracy">—</strong></div>
+          <div class="stat"><span class="stat-label">Updated</span><strong id="viewerUpdated">—</strong></div>
+        </div>
+        <div class="map-actions">
+          <button id="refreshBtn" class="secondary">Refresh</button>
+          <button id="directionsBtn" class="secondary" disabled>Open directions</button>
+        </div>
+        <div id="map" class="map" aria-label="Map showing shared location"></div>
+        <div class="data-row"><span>Latitude / longitude</span><strong id="coordinates">—</strong></div>
+        <div class="data-row"><span>Distance from this device</span><strong id="distance">Not calculated</strong></div>
+        <button id="distanceBtn" class="secondary full">Calculate distance (share my location once)</button>
+        <div class="notice"><strong>QR code:</strong> scan this code to open the viewer sign-in page on another device. It does not contain a password or grant access by itself.</div>
+        <div id="qrCode" class="qr-box"></div>
+      </section>
+
+      <section class="panel compact">
+        <div class="section-head"><div><div class="eyebrow">LOCATION HISTORY</div><h2>Last 7 days</h2></div><span class="pill muted">7-day retention</span></div>
+        <p class="muted">History is visible to the authorized viewer and is cleaned up when the provider next opens the app. Firestore's free tier does not guarantee automatic TTL deletion; see README for details.</p>
+        <div id="historyList" class="history-list"><p class="muted">No history loaded.</p></div>
+      </section>
+    </section>
+    <footer>SUBHAJIT LOCATION TRACKER · Consent-based sharing · Free-tier configuration</footer>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="./firebase-config.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+# Local-only environment notes
+.firebase/
+.DS_Store
+Thumbs.db

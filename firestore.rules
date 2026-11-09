@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Replace these two strings with the Firebase Authentication UIDs
+    // of the provider and viewer accounts after creating them.
+    function isProvider() {
+      return request.auth != null && request.auth.uid == "ge0bWL3p5fedXIgvbRB8INLHHcn2";
+    }
+    function isViewer() {
+      return request.auth != null && request.auth.uid == "oHwdBlgl9qXLXm311fPQKmupJvQ2";
+    }
+    function isAllowed() { return isProvider() || isViewer(); }
+
+    match /trackers/main {
+      allow read: if isAllowed();
+      allow create, update: if isProvider()
+        && request.resource.data.providerUid == request.auth.uid;
+      allow delete: if false;
+
+      match /history/{entryId} {
+        allow read: if isAllowed();
+        allow create: if isProvider()
+          && request.resource.data.providerUid == request.auth.uid
+          && request.resource.data.keys().hasOnly([
+            "lat", "lng", "accuracy", "timestamp", "providerUid"
+          ]);
+        allow delete: if isProvider();
+        allow update: if false;
+      }
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
